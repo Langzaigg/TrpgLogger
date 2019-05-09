@@ -27,7 +27,7 @@ std::string saveLog(time_t time_start, time_t now, long long groupNum, MsgType m
 	try
 	{
 		// 创建日志数据库对象及语句，绑定参数
-		SQLite::Database db(dbLoc,SQLite::OPEN_READONLY,3000);
+		SQLite::Database db(dbLoc_UTF8, SQLite::OPEN_READONLY, 3000);
 		SQLite::Statement query(db, SQL);
 		if (msgType == MsgType::Group)
 		{
@@ -75,6 +75,10 @@ std::string saveLog(time_t time_start, time_t now, long long groupNum, MsgType m
 					if (msgType==MsgType::Group)
 					{
 						msg.replace(at_left, at_right - at_left + 1, u8"@" + GBKToUTF8(!CQ::getGroupMemberInfo(groupNum, qqNum).GroupNick.empty() ? CQ::getGroupMemberInfo(groupNum, qqNum).GroupNick : CQ::getStrangerInfo(qqNum).nick));
+					}
+					else
+					{
+						msg.replace(at_left, at_right - at_left + 1, u8"@" + GBKToUTF8(CQ::getStrangerInfo(qqNum).nick));
 					}
 				}
 				

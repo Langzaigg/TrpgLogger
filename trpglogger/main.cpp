@@ -17,6 +17,7 @@
 #include "GlobalVar.h"
 #include "SaveLog.h"
 #include "MsgType.h"
+#include "EncodingConvert.h"
 
 EVE_Enable(eventEnable)
 {
@@ -39,7 +40,7 @@ EVE_Enable(eventEnable)
 
 	// 由可执行文件路径获取日志数据库路径
 	std::string tempLoc(fileName);
-	dbLoc = tempLoc.substr(0, tempLoc.find_last_of('\\')) + "\\data\\" + std::to_string(CQ::getLoginQQ()) + "\\eventv2.db";
+	dbLoc_UTF8 = GBKToUTF8(tempLoc.substr(0, tempLoc.find_last_of('\\')) + "\\data\\" + std::to_string(CQ::getLoginQQ()) + "\\eventv2.db");
 
 	std::ifstream readSessionGroup(fileLoc + "Group.session");
 	if (readSessionGroup)
@@ -70,6 +71,19 @@ EVE_Enable(eventEnable)
 // 群聊部分
 EVE_GroupMsg_EX(eventGroupMsg)
 {
+	std::string strAt = "[CQ:at,qq=" + std::to_string(CQ::getLoginQQ()) + "]";
+	if (eve.message.substr(0, 6) == "[CQ:at")
+	{
+		if (eve.message.substr(0, strAt.length()) != strAt)
+		{
+			return;
+		}
+		eve.message = eve.message.substr(strAt.length());
+	}
+	while (eve.message[0] == ' ')
+	{
+		eve.message.erase(eve.message.begin());
+	}
 	if (eve.message.substr(0, 2) == "。")
 	{
 		eve.message.erase(eve.message.begin());
@@ -147,6 +161,19 @@ EVE_GroupMsg_EX(eventGroupMsg)
 // 讨论组部分
 EVE_DiscussMsg_EX(eventDiscussMsg)
 {
+	std::string strAt = "[CQ:at,qq=" + std::to_string(CQ::getLoginQQ()) + "]";
+	if (eve.message.substr(0, 6) == "[CQ:at")
+	{
+		if (eve.message.substr(0, strAt.length()) != strAt)
+		{
+			return;
+		}
+		eve.message = eve.message.substr(strAt.length());
+	}
+	while (eve.message[0] == ' ')
+	{
+		eve.message.erase(eve.message.begin());
+	}
 	if (eve.message.substr(0, 2) == "。")
 	{
 		eve.message.erase(eve.message.begin());
@@ -275,29 +302,7 @@ EVE_Exit(eventExit)
 	// 如果应用未启用, 则在eventDisable中已经释放过资源了，无需再次释放
 	if (Enabled)
 	{
-		// 释放Aws API资源
-		Aws::ShutdownAPI(options);
-
-		// 保存Session信息
-		std::ofstream saveSessionGroup(fileLoc + "Group.session", std::ios::out | std::ios::trunc);
-		if (saveSessionGroup)
-		{
-			for (const auto& ele : LogInfo)
-			{
-				saveSessionGroup << ele.first << " " << ele.second << std::endl;
-			}
-		}
-		saveSessionGroup.close();
-
-		std::ofstream saveSessionDiscuss(fileLoc + "Discuss.session", std::ios::out | std::ios::trunc);
-		if (saveSessionDiscuss)
-		{
-			for (const auto& ele : LogInfoDiscuss)
-			{
-				saveSessionDiscuss << ele.first << " " << ele.second << std::endl;
-			}
-		}
-		saveSessionDiscuss.close();
+		return eventDisable();
 	}
 	return 0;
 }
